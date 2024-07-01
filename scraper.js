@@ -1,22 +1,19 @@
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 const puppeteer = require('puppeteer');
+const dotenv = require('dotenv');
+const { google } = require('googleapis');
+const fs = require('fs');
 
-async function launchBrowser() {
-    console.log('Launching a new browser instance...');
-    console.log('process.env.PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
-    return await puppeteer.launch({
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        args: [
-            "--disable-setuid-sandbox",
-            "--no-sandbox",
-            "--single-process",
-            "--no-zygote",
-        ],
-    });
+// Load environment variables from .env file
+dotenv.config();
+
+// Function to clean text from accents and diacritics
+function cleanString(text) {
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 // Function to extract news details from a single URL
-async function extractNewsDetails(url) {
-    const browser = await launchBrowser();
+async function extractNewsDetails(url, browser) {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -32,13 +29,12 @@ async function extractNewsDetails(url) {
         console.error('Error extracting news details:', error);
         return { title: 'No title found', category: 'No category found', readTime: 0, author: 'No author found' };
     } finally {
-        await browser.close();
+        await page.close();
     }
 }
 
 // Function to extract all news from a given URL
-async function extractAllNews(url) {
-    const browser = await launchBrowser();
+async function extractAllNews(url, browser) {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -46,7 +42,6 @@ async function extractAllNews(url) {
         while (true) {
             await page.waitForSelector('button.inline-flex.cursor-pointer');
             await page.click('button.inline-flex.cursor-pointer');
-
             await page.waitForSelector('button.inline-flex.cursor-pointer.disabled', { hidden: true });
         }
     } catch (error) {
@@ -57,31 +52,81 @@ async function extractAllNews(url) {
     const newsDetails = [];
 
     for (const link of newsLinks) {
-        const details = await extractNewsDetails(link);
+        const details = await extractNewsDetails(link, browser);
         newsDetails.push(details);
 
         // Clean data
         details.title = cleanString(details.title);
         details.category = cleanString(details.category);
         details.author = cleanString(details.author);
-        // Probar con 1 noticia
+        
+        // Uncomment the line below to test with one news only
         break;
     }
 
-    await browser.close();
     return newsDetails;
 }
 
 // Function to extract all categories from the base URL
-async function extractAllCategories(baseUrl) {
-    const browser = await launchBrowser();
+async function extractAllCategories(baseUrl, browser) {
     const page = await browser.newPage();
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
     const categoryLinks = await page.$$eval('a.relative.z-10.flex.cursor-pointer.items-center.py-[11px].text-xs.font-semibold.tracking-wide.text-xsky-700.transition.duration-300.hover:text-xindigo-500.xl:text-sm', links => links.map(link => link.href.split('/').pop()));
 
-    await browser.close();
     return categoryLinks;
+}
+
+// Function to write data to Google Sheets
+async function writeToGoogleSheet(data) {
+    try {
+        console.log('Credentials path:', process.env.CREDENTIALS_PATH);
+        // Initialize Google Sheets API
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                type: process.env.CREDENTIALS_TYPE,
+                project_id: process.env.CREDENTIALS_PROJECT_ID,
+                private_key_id: process.env.CREDENTIALS_PRIVATE_KEY_ID,
+                private_key: process.env.CREDENTIALS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                client_email: process.env.CREDENTIALS_CLIENT_EMAIL,
+                client_id: process.env.CREDENTIALS_CLIENT_ID,
+                auth_uri: process.env.CREDENTIALS_AUTH_URI,
+                token_uri: process.env.CREDENTIALS_TOKEN_URI,
+                auth_provider_x509_cert_url: process.env.CREDENTIALS_AUTH_PROVIDER_CERT_URL,
+                client_x509_cert_url: process.env.CREDENTIALS_CLIENT_CERT_URL,
+                universe_domain: process.env.CREDENTIALS_UNIVERSE_DOMAIN
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+        const authClient = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+        // Clear existing data in the sheet
+        const spreadsheetId = process.env.SPREADSHEET_ID;
+        const clearResponse = await sheets.spreadsheets.values.clear({
+            spreadsheetId,
+            range: 'Hoja 1', // Update sheet name if necessary
+        });
+
+        // Prepare data for writing
+        const values = data.map(item => [item.title, item.category, item.readTime, item.author]);
+        const resource = {
+            values: [['Title', 'Category', 'Read Time', 'Author'], ...values],
+        };
+
+        // Write data to the sheet
+        const appendResponse = await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'Hoja 1!A1', // Update sheet name if necessary
+            valueInputOption: 'RAW',
+            resource,
+        });
+
+        console.log('Data has been written to the Google Sheet.');
+    } catch (error) {
+        console.error('Error writing to Google Sheet:', error);
+        throw error;
+    }
 }
 
 // Main function to initiate scraping and writing to Google Sheets
@@ -90,10 +135,22 @@ async function main(category) {
         // Base URL for the blog
         const baseUrl = 'https://xepelin.com/blog';
 
+        // Launch browser
+        const browser = await puppeteer.launch({
+            headless: true, // Configura headless a true para modo sin cabeza
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+            args: [
+                "--disable-setuid-sandbox",
+                "--no-sandbox",
+                "--single-process",
+                "--no-zygote",
+            ],
+        });
+
         // Extract all categories if 'todo' is provided as category argument
         let categories;
         if (category === 'todo') {
-            categories = await extractAllCategories(baseUrl);
+            categories = await extractAllCategories(baseUrl, browser);
         } else {
             categories = [category];
         }
@@ -102,7 +159,7 @@ async function main(category) {
         let allNewsDetails = [];
         for (const cat of categories) {
             const url = `${baseUrl}/${cat}`;
-            const newsDetails = await extractAllNews(url);
+            const newsDetails = await extractAllNews(url, browser);
             allNewsDetails = [...allNewsDetails, ...newsDetails];
         }
 
@@ -110,6 +167,9 @@ async function main(category) {
         await writeToGoogleSheet(allNewsDetails);
 
         console.log('News details have been written to the Google Sheet.');
+
+        // Close browser
+        await browser.close();
     } catch (error) {
         console.error('Error in main function:', error);
         process.exit(1);
