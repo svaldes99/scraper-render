@@ -22,7 +22,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 # Define el directorio de trabajo
-WORKDIR /app
+WORKDIR /usr/src/app
 
 # Copia los archivos de la aplicación
 COPY package*.json ./
