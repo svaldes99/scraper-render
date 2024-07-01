@@ -15,6 +15,7 @@ function cleanString(text) {
 
 // Function to extract news details from a single URL
 async function extractNewsDetails(url) {
+    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.NODE_ENV === "production"
@@ -48,6 +49,7 @@ async function extractNewsDetails(url) {
 
 // Function to extract all news from a given URL
 async function extractAllNews(url) {
+    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
@@ -93,6 +95,7 @@ async function extractAllNews(url) {
 
 // Function to extract all categories from the base URL
 async function extractAllCategories(baseUrl) {
+    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),

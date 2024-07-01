@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y \
     apt-get purge --auto-remove -y gnupg && \
     rm -rf /var/lib/apt/lists/*
 
+# Verifica la instalación de Google Chrome
+RUN ls -l /usr/bin/google-chrome-stable
+
 # Establece las variables de entorno necesarias
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
