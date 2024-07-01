@@ -15,7 +15,18 @@ function cleanString(text) {
 
 // Function to extract news details from a single URL
 async function extractNewsDetails(url) {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: process.env.NODE_ENV === "production"
+            ? process.env.PUPPETEER_EXECUTABLE_PATH
+            : puppeteer.executablePath(),
+        args: [
+            "--disable-setuid-sandbox",
+            "--no-sandbox",
+            "--single-process",
+            "--no-zygote",
+        ],
+    });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -37,7 +48,18 @@ async function extractNewsDetails(url) {
 
 // Function to extract all news from a given URL
 async function extractAllNews(url) {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: process.env.NODE_ENV === "production"
+            ? process.env.PUPPETEER_EXECUTABLE_PATH
+            : puppeteer.executablePath(),
+        args: [
+            "--disable-setuid-sandbox",
+            "--no-sandbox",
+            "--single-process",
+            "--no-zygote",
+        ],
+    });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -63,7 +85,7 @@ async function extractAllNews(url) {
         details.title = cleanString(details.title);
         details.category = cleanString(details.category);
         details.author = cleanString(details.author);
-       // Probar con 1 noticia
+        // Probar con 1 noticia
         break;
     }
 
@@ -73,7 +95,18 @@ async function extractAllNews(url) {
 
 // Function to extract all categories from the base URL
 async function extractAllCategories(baseUrl) {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: process.env.NODE_ENV === "production"
+            ? process.env.PUPPETEER_EXECUTABLE_PATH
+            : puppeteer.executablePath(),
+        args: [
+            "--disable-setuid-sandbox",
+            "--no-sandbox",
+            "--single-process",
+            "--no-zygote",
+        ],
+    });
     const page = await browser.newPage();
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
