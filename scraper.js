@@ -50,9 +50,7 @@ async function extractNewsDetails(url) {
 async function extractAllNews(url) {
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.NODE_ENV === "production"
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : puppeteer.executablePath(),
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
             "--disable-setuid-sandbox",
             "--no-sandbox",
@@ -97,9 +95,7 @@ async function extractAllNews(url) {
 async function extractAllCategories(baseUrl) {
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.NODE_ENV === "production"
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : puppeteer.executablePath(),
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
             "--disable-setuid-sandbox",
             "--no-sandbox",
