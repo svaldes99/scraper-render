@@ -137,7 +137,7 @@ async function main(category) {
 
         // Launch browser
         const browser = await puppeteer.launch({
-            headless: true, // Configura headless a true para modo sin cabeza
+            headless: "new", // Configura headless a true para modo sin cabeza
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
             args: [
                 "--disable-setuid-sandbox",
