@@ -1,26 +1,9 @@
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const { default: Axios } = require('axios');
 const puppeteer = require('puppeteer');
-const dotenv = require('dotenv');
-const { google } = require('googleapis');
-const fs = require('fs');
 
-// Load environment variables from .env file
-dotenv.config();
-
-// Function to clean text from accents and diacritics
-function cleanString(text) {
-    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-// Function to extract news details from a single URL
-async function extractNewsDetails(url) {
-    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
-    const browser = await puppeteer.launch({
-        headless: "new",
-        executablePath: process.env.NODE_ENV === "production"
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : puppeteer.executablePath(),
+async function launchBrowser() {
+    return await puppeteer.launch({
+        headless: "new", // Usa el nuevo modo Headless
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
             "--disable-setuid-sandbox",
             "--no-sandbox",
@@ -28,6 +11,11 @@ async function extractNewsDetails(url) {
             "--no-zygote",
         ],
     });
+}
+
+// Function to extract news details from a single URL
+async function extractNewsDetails(url) {
+    const browser = await launchBrowser();
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -49,17 +37,7 @@ async function extractNewsDetails(url) {
 
 // Function to extract all news from a given URL
 async function extractAllNews(url) {
-    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
-    const browser = await puppeteer.launch({
-        headless: "new",
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        args: [
-            "--disable-setuid-sandbox",
-            "--no-sandbox",
-            "--single-process",
-            "--no-zygote",
-        ],
-    });
+    const browser = await launchBrowser();
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -95,17 +73,7 @@ async function extractAllNews(url) {
 
 // Function to extract all categories from the base URL
 async function extractAllCategories(baseUrl) {
-    console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
-    const browser = await puppeteer.launch({
-        headless: "new",
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        args: [
-            "--disable-setuid-sandbox",
-            "--no-sandbox",
-            "--single-process",
-            "--no-zygote",
-        ],
-    });
+    const browser = await launchBrowser();
     const page = await browser.newPage();
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
@@ -113,60 +81,6 @@ async function extractAllCategories(baseUrl) {
 
     await browser.close();
     return categoryLinks;
-}
-
-// Function to load environment variables
-function loadEnv() {
-    const envPath = `.env`;
-    const envExists = fs.existsSync(envPath);
-    if (envExists) {
-        const envConfig = dotenv.parse(fs.readFileSync(envPath));
-        for (const key in envConfig) {
-            process.env[key] = envConfig[key];
-        }
-    }
-}
-
-// Function to write data to Google Sheets
-async function writeToGoogleSheet(data) {
-    try {
-        // Load environment variables
-        loadEnv();
-
-        // Initialize Google Sheets API
-        const auth = new google.auth.GoogleAuth({
-            keyFile: process.env.CREDENTIALS_PATH,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-        });
-        const authClient = await auth.getClient();
-        const sheets = google.sheets({ version: 'v4', auth: authClient });
-
-        // Clear existing data in the sheet
-        const spreadsheetId = process.env.SPREADSHEET_ID;
-        const clearResponse = await sheets.spreadsheets.values.clear({
-            spreadsheetId,
-            range: 'Hoja 1', // Update sheet name if necessary
-        });
-
-        // Prepare data for writing
-        const values = data.map(item => [item.title, item.category, item.readTime, item.author]);
-        const resource = {
-            values: [['Title', 'Category', 'Read Time', 'Author'], ...values],
-        };
-
-        // Write data to the sheet
-        const appendResponse = await sheets.spreadsheets.values.append({
-            spreadsheetId,
-            range: 'Hoja 1!A1', // Update sheet name if necessary
-            valueInputOption: 'RAW',
-            resource,
-        });
-
-        console.log('Data has been written to the Google Sheet.');
-    } catch (error) {
-        console.error('Error writing to Google Sheet:', error);
-        throw error;
-    }
 }
 
 // Main function to initiate scraping and writing to Google Sheets
