@@ -17,7 +17,7 @@ function cleanString(text) {
 async function extractNewsDetails(url) {
     console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         executablePath: process.env.NODE_ENV === "production"
             ? process.env.PUPPETEER_EXECUTABLE_PATH
             : puppeteer.executablePath(),
@@ -51,7 +51,7 @@ async function extractNewsDetails(url) {
 async function extractAllNews(url) {
     console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
             "--disable-setuid-sandbox",
@@ -97,7 +97,7 @@ async function extractAllNews(url) {
 async function extractAllCategories(baseUrl) {
     console.log('Using browser executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath());
     const browser = await puppeteer.launch({
-        headless: true,
+        headless: "new",
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
             "--disable-setuid-sandbox",
