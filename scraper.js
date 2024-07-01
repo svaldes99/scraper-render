@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 async function launchBrowser() {
     console.log('Launching a new browser instance...');
-    console.loh('process.env.PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
+    console.log('process.env.PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
     return await puppeteer.launch({
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
         args: [
